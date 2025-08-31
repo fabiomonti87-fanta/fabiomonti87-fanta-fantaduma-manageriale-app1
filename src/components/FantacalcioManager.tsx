@@ -105,6 +105,24 @@ function buildSlotsForFormation(key: FormationKey): Slot[] {
     });
   };
 
+  // ---- helper: è "non in lista"? ----
+const isNonInLista = useCallback((p: Player) => {
+  const u = (p.ultimoFVM ?? '').toString().trim();
+  const legacy =
+    u === '' || u === '#N/A' || u === '#N/D' || u.toLowerCase() === 'n/a';
+
+  const inAsteriscati =
+    asteriscatiIds.has(Number(p.id)) ||
+    asteriscatiNames.has((p.giocatore ?? '').toString().trim().toLowerCase());
+
+  // UNIONE (consigliato): in “Non in lista” finisce se soddisfa una delle due condizioni
+  return legacy || inAsteriscati;
+
+  // Se davvero vuoi l'intersezione:
+  // return legacy && inAsteriscati;
+}, [asteriscatiIds, asteriscatiNames]);
+
+  
   // layout per linee (y dal basso verso l'alto)
   switch (key) {
     case '4-3-3': {
