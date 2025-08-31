@@ -14,10 +14,6 @@ const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
 });
 
-// --- Aggiungi questi due state ---
-const [asteriscatiIds, setAsteriscatiIds] = useState<Set<number>>(new Set());
-const [asteriscatiNames, setAsteriscatiNames] = useState<Set<string>>(new Set());
-
 // ========= Tipi =========
 type Role = 'Por' | 'Dc' | 'Dd' | 'Ds' | 'E' | 'M' | 'C' | 'T' | 'W' | 'A' | 'Pc';
 type FormationKey = '4-3-3' | '4-4-2' | '3-5-2' | '3-4-3' | '4-2-3-1';
@@ -183,6 +179,9 @@ const FantacalcioManager: React.FC = () => {
   const [selectedRoles, setSelectedRoles] = useState<Set<Role>>(new Set());
   const [homeQuery, setHomeQuery] = useState<string>('');
 
+  const [asteriscatiIds, setAsteriscatiIds] = useState<Set<number>>(new Set());
+  const [asteriscatiNames, setAsteriscatiNames] = useState<Set<string>>(new Set());
+  
   // Formazione
   const [formationChoice, setFormationChoice] = useState<'auto' | FormationKey>('auto');
   const [showPitch, setShowPitch] = useState<boolean>(false);
@@ -283,93 +282,96 @@ const FantacalcioManager: React.FC = () => {
     setError(null);
   };
 
-  const processExcelData = (data: ArrayBuffer) => {
-    try {
-      const wb = XLSX.read(data, {
-        type: 'array', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true, sheetStubs: true
-      });
-      const gestionale = wb.Sheets['Gestionale'];
-      if (!gestionale) { setError('Il file non contiene il foglio &quot;Gestionale&quot;.'); setLoading(false); return; }
+const processExcelData = (data: ArrayBuffer) => {
+  try {
+    const wb = XLSX.read(data, {
+      type: 'array', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true, sheetStubs: true
+    });
 
-      const raw = XLSX.utils.sheet_to_json(gestionale, { header: 1 }) as unknown[][];
-      const rows: Player[] = [];
-      for (let i = 1; i < raw.length; i++) {
-        const r = raw[i];
-        if (r && r[1] && r[1] !== '#N/A') {
-          rows.push({
-            id: Number(r[0]),
-            giocatore: String(r[1]),
-            squadraFantacalcio: String(r[2] ?? ''),
-            squadraSerieA: String(r[3] ?? ''),
-            ruolo: String(r[4] ?? ''),
-            tipoContratto: r[5] ? String(r[5]) : undefined,
-            dataAcquisto: r[6] ? String(r[6]) : undefined,
-            scadenzaIpotizzata: r[7] ? String(r[7]) : undefined,
-            tipoAcquisto: r[8] ? String(r[8]) : undefined,
-            valAsteriscato: r[9] as string | number | undefined,
-            scambioIngaggio: r[10] as string | number | undefined,
-            valoreAcquisto: r[11] as string | number | undefined,
-            fvm2425: r[12] as string | number | undefined,
-            ultimoFVM: r[13] as string | number | undefined,
-            valoreXMercato: r[15] as string | number | undefined,
-            ingaggio36: r[16] as string | number | undefined,
-            ingaggioReale: r[17] as string | number | undefined,
-          });
-        }
-        // --- Nuovo: parse sheet "Asteriscati_estate25-26" ---
-const astSheet = wb.Sheets['Asteriscati_estate25-26'];
-if (astSheet) {
-  const astRaw = XLSX.utils.sheet_to_json(astSheet, { header: 1 }) as unknown[][];
-  const ids = new Set<number>();
-  const names = new Set<string>();
+    const gestionale = wb.Sheets['Gestionale'];
+    if (!gestionale) { setError('Il file non contiene il foglio "Gestionale".'); setLoading(false); return; }
 
-  // Riga 0 = intestazioni, quindi parto da 1
-  for (let i = 1; i < astRaw.length; i++) {
-    const r = astRaw[i];
-    if (!r) continue;
+    const raw = XLSX.utils.sheet_to_json(gestionale, { header: 1 }) as unknown[][];
+    const rows: Player[] = [];
 
-    // Colonne richieste: A=id(0), D=nome(3), N=squadraFanta(13) – N non è obbligatoria per il match
-    const idVal = Number(r[0]);
-    const nameVal = (r[3] ?? '').toString().trim().toLowerCase();
-
-    if (!Number.isNaN(idVal) && idVal > 0) ids.add(idVal);
-    if (nameVal) names.add(nameVal);
-  }
-
-  setAsteriscatiIds(ids);
-  setAsteriscatiNames(names);
-} else {
-  // Se il foglio non c'è, lasciamo i Set vuoti
-  setAsteriscatiIds(new Set());
-  setAsteriscatiNames(new Set());
-}
-
+    // --- Gestionale -> rows
+    for (let i = 1; i < raw.length; i++) {
+      const r = raw[i];
+      if (r && r[1] && r[1] !== '#N/A') {
+        rows.push({
+          id: Number(r[0]),
+          giocatore: String(r[1]),
+          squadraFantacalcio: String(r[2] ?? ''),
+          squadraSerieA: String(r[3] ?? ''),
+          ruolo: String(r[4] ?? ''),
+          tipoContratto: r[5] ? String(r[5]) : undefined,
+          dataAcquisto: r[6] ? String(r[6]) : undefined,
+          scadenzaIpotizzata: r[7] ? String(r[7]) : undefined,
+          tipoAcquisto: r[8] ? String(r[8]) : undefined,
+          valAsteriscato: r[9] as string | number | undefined,
+          scambioIngaggio: r[10] as string | number | undefined,
+          valoreAcquisto: r[11] as string | number | undefined,
+          fvm2425: r[12] as string | number | undefined,
+          ultimoFVM: r[13] as string | number | undefined,
+          valoreXMercato: r[15] as string | number | undefined,
+          ingaggio36: r[16] as string | number | undefined,
+          ingaggioReale: r[17] as string | number | undefined,
+        });
       }
-      if (!rows.length) { setError('Nessun dato valido trovato nel file.'); setLoading(false); return; }
-      setAllData(rows);
-
-      const uniq = [...new Set(rows.map(p => p.squadraFantacalcio).filter(s => s && s !== '#N/A'))].sort();
-      setSquadre(uniq);
-
-      const sintesi = wb.Sheets['Sintesi Squadre'];
-      if (sintesi) {
-        const ss = XLSX.utils.sheet_to_json(sintesi, { header: 1 }) as unknown[][];
-        const cred: Record<string, number> = {};
-        for (let i = 18; i < ss.length; i++) {
-          const r = ss[i];
-          if (r && r[0]) cred[String(r[0])] = Number(r[1]) || 0;
-        }
-        setCreditiSquadre(cred);
-      }
-
-      if (uniq.length) setSelectedSquadra(uniq[0]);
-      setFileLoaded(true);
-      setLoading(false);
-    } catch {
-      setError('Errore nel processamento del file.');
-      setLoading(false);
     }
-  };
+
+    // --- Asteriscati_estate25-26 -> set (una sola volta) ✅
+    const astSheet = wb.Sheets['Asteriscati_estate25-26'];
+    if (astSheet) {
+      const astRaw = XLSX.utils.sheet_to_json(astSheet, { header: 1 }) as unknown[][];
+      const ids = new Set<number>();
+      const names = new Set<string>();
+
+      for (let i = 1; i < astRaw.length; i++) {
+        const r = astRaw[i];
+        if (!r) continue;
+        const idVal = Number(r[0]);                       // col A
+        const nameVal = (r[3] ?? '').toString().trim().toLowerCase(); // col D
+        if (!Number.isNaN(idVal) && idVal > 0) ids.add(idVal);
+        if (nameVal) names.add(nameVal);
+      }
+
+      setAsteriscatiIds(ids);
+      setAsteriscatiNames(names);
+    } else {
+      setAsteriscatiIds(new Set());
+      setAsteriscatiNames(new Set());
+    }
+
+    if (!rows.length) { setError('Nessun dato valido trovato nel file.'); setLoading(false); return; }
+
+    setAllData(rows);
+
+    // Squadre uniche
+    const uniq = [...new Set(rows.map(p => p.squadraFantacalcio).filter(s => s && s !== '#N/A'))].sort();
+    setSquadre(uniq);
+
+    // Crediti (Sintesi Squadre)
+    const sintesi = wb.Sheets['Sintesi Squadre'];
+    if (sintesi) {
+      const ss = XLSX.utils.sheet_to_json(sintesi, { header: 1 }) as unknown[][];
+      const cred: Record<string, number> = {};
+      for (let i = 18; i < ss.length; i++) {
+        const r = ss[i];
+        if (r && r[0]) cred[String(r[0])] = Number(r[1]) || 0;
+      }
+      setCreditiSquadre(cred);
+    }
+
+    if (uniq.length) setSelectedSquadra(uniq[0]);
+    setFileLoaded(true);
+    setLoading(false);
+  } catch {
+    setError('Errore nel processamento del file.');
+    setLoading(false);
+  }
+};
+
 
   // Helpers UI
   const formatDate = (v: unknown) => {
@@ -473,7 +475,7 @@ if (astSheet) {
       return true;
     });
     setFilteredData(res);
-  }, [selectedSquadra, filterType, allData, normalizedQuery, selectedRoles]);
+  }, [selectedSquadra, filterType, allData, normalizedQuery, selectedRoles, asteriscatiIds, asteriscatiNames]);
 
   const clearSearchAndRoles = () => { setSearchQuery(''); setSelectedRoles(new Set<Role>()); };
   const toggleRole = (r: Role) => setSelectedRoles(prev => {
