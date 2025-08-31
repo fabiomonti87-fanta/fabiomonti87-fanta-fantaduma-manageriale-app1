@@ -104,24 +104,6 @@ function buildSlotsForFormation(key: FormationKey): Slot[] {
       });
     });
   };
-
-  // ---- helper: è "non in lista"? ----
-const isNonInLista = useCallback((p: Player) => {
-  const u = (p.ultimoFVM ?? '').toString().trim();
-  const legacy =
-    u === '' || u === '#N/A' || u === '#N/D' || u.toLowerCase() === 'n/a';
-
-  const inAsteriscati =
-    asteriscatiIds.has(Number(p.id)) ||
-    asteriscatiNames.has((p.giocatore ?? '').toString().trim().toLowerCase());
-
-  // UNIONE (consigliato): in “Non in lista” finisce se soddisfa una delle due condizioni
-  return legacy || inAsteriscati;
-
-  // Se davvero vuoi l'intersezione:
-  // return legacy && inAsteriscati;
-}, [asteriscatiIds, asteriscatiNames]);
-
   
   // layout per linee (y dal basso verso l'alto)
   switch (key) {
@@ -506,6 +488,23 @@ const processExcelData = (data: ArrayBuffer) => {
     if (!q) return squadre;
     return squadre.filter(s => s.toLowerCase().includes(q));
   }, [homeQuery, squadre]);
+
+  const isNonInList = useMemo(() => {
+  return (p: Player) => {
+    // Logica "storica"
+    const u = String(p.ultimoFVM ?? '').trim();
+    const legacy =
+      u === '' || u === '#N/A' || u === '#N/D' || u.toLowerCase() === 'n/a';
+
+    // Logica "Asteriscati_estate25-26"
+    const byId = typeof p.id === 'number' && asteriscatiIds.has(p.id);
+    const byName = asteriscatiNames.has(String(p.giocatore || '').trim().toLowerCase());
+    const inAsteriscati = byId || byName;
+
+    // Unione (OR): consideriamo "non in lista" se vale una delle due
+    return legacy || inAsteriscati;
+  };
+}, [asteriscatiIds, asteriscatiNames]);
 
   // ---------- Calcolo XI migliore ----------
 const organicoPlayers = useMemo(() => {
@@ -1167,6 +1166,7 @@ const organicoPlayers = useMemo(() => {
                                       {isNonInList(p) && (
                                         <span className="ml-1 text-orange-600" title="Attualmente non in listone">*</span>
                                       )}
+                            </span>
                           <div className="text-xs text-gray-500">{p.squadraSerieA !== '#N/A' ? p.squadraSerieA : '-'}</div>
                         </div>
                       </td>
