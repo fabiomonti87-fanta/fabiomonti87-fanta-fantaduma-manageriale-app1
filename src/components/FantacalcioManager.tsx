@@ -14,6 +14,10 @@ const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
 });
 
+// --- Aggiungi questi due state ---
+const [asteriscatiIds, setAsteriscatiIds] = useState<Set<number>>(new Set());
+const [asteriscatiNames, setAsteriscatiNames] = useState<Set<string>>(new Set());
+
 // ========= Tipi =========
 type Role = 'Por' | 'Dc' | 'Dd' | 'Ds' | 'E' | 'M' | 'C' | 'T' | 'W' | 'A' | 'Pc';
 type FormationKey = '4-3-3' | '4-4-2' | '3-5-2' | '3-4-3' | '4-2-3-1';
@@ -312,6 +316,34 @@ const FantacalcioManager: React.FC = () => {
             ingaggioReale: r[17] as string | number | undefined,
           });
         }
+        // --- Nuovo: parse sheet "Asteriscati_estate25-26" ---
+const astSheet = wb.Sheets['Asteriscati_estate25-26'];
+if (astSheet) {
+  const astRaw = XLSX.utils.sheet_to_json(astSheet, { header: 1 }) as unknown[][];
+  const ids = new Set<number>();
+  const names = new Set<string>();
+
+  // Riga 0 = intestazioni, quindi parto da 1
+  for (let i = 1; i < astRaw.length; i++) {
+    const r = astRaw[i];
+    if (!r) continue;
+
+    // Colonne richieste: A=id(0), D=nome(3), N=squadraFanta(13) – N non è obbligatoria per il match
+    const idVal = Number(r[0]);
+    const nameVal = (r[3] ?? '').toString().trim().toLowerCase();
+
+    if (!Number.isNaN(idVal) && idVal > 0) ids.add(idVal);
+    if (nameVal) names.add(nameVal);
+  }
+
+  setAsteriscatiIds(ids);
+  setAsteriscatiNames(names);
+} else {
+  // Se il foglio non c'è, lasciamo i Set vuoti
+  setAsteriscatiIds(new Set());
+  setAsteriscatiNames(new Set());
+}
+
       }
       if (!rows.length) { setError('Nessun dato valido trovato nel file.'); setLoading(false); return; }
       setAllData(rows);
@@ -397,10 +429,20 @@ const FantacalcioManager: React.FC = () => {
 
       if (!tipi.includes(String(p.tipoAcquisto || ''))) return false;
 
-      if (filterType === 'nonInListone') {
-        const noList = !p.ultimoFVM || p.ultimoFVM === '#N/A' || p.ultimoFVM === '#N/D' || p.ultimoFVM === '';
-        if (!noList) return false;
-      }
+   if (filterType === 'nonInListone') {
+  // Logica precedente
+  const noListLegacy =
+    !p.ultimoFVM || p.ultimoFVM === '#N/A' || p.ultimoFVM === '#N/D' || p.ultimoFVM === '';
+
+  // Nuovo: presenti nello sheet "Asteriscati_estate25-26"
+  const inAsteriscatiById = typeof p.id === 'number' && asteriscatiIds.has(p.id);
+  const inAsteriscatiByName = asteriscatiNames.has(String(p.giocatore || '').trim().toLowerCase());
+  const inAsteriscati = inAsteriscatiById || inAsteriscatiByName;
+
+  // Unione (OR): o “non in listone” legacy, o asteriscati
+  const matchNonInLista = noListLegacy || inAsteriscati;
+  if (!matchNonInLista) return false;
+}
 
       if (isValidDate(p.scadenzaIpotizzata)) {
         const scad = new Date(String(p.scadenzaIpotizzata));
