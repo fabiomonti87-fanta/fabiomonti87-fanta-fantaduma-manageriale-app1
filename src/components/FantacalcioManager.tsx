@@ -508,21 +508,25 @@ const processExcelData = (data: ArrayBuffer) => {
   }, [homeQuery, squadre]);
 
   // ---------- Calcolo XI migliore ----------
-  const organicoPlayers = useMemo(() => {
-    if (!selectedSquadra) return [] as (Player & { _roles: Role[]; _fvm: number })[];
-    return allData
-      .filter(p => p.squadraFantacalcio === selectedSquadra)
-      .filter(p => {
-        const organicoTypes = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
-        if (!organicoTypes.includes(String(p.tipoAcquisto || ''))) return false;
-        if (!isValidDate(p.scadenzaIpotizzata)) return false;
-        const scad = new Date(String(p.scadenzaIpotizzata));
-        if (!(scad > new Date('2025-07-01'))) return false;
-        return getFVM(p) > 0;
-      })
-      .map(p => ({ ...p, _roles: parseRoles(p.ruolo), _fvm: getFVM(p) }))
-      .sort((a, b) => b._fvm - a._fvm);
-  }, [allData, selectedSquadra]);
+const organicoPlayers = useMemo(() => {
+  if (!selectedSquadra) return [] as (Player & { _roles: Role[]; _fvm: number })[];
+  return allData
+    .filter(p => p.squadraFantacalcio === selectedSquadra)
+    .filter(p => {
+      const organicoTypes = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
+      if (!organicoTypes.includes(String(p.tipoAcquisto || ''))) return false;
+      if (!isValidDate(p.scadenzaIpotizzata)) return false;
+      const scad = new Date(String(p.scadenzaIpotizzata));
+      if (!(scad > new Date('2025-07-01'))) return false;
+
+      // <-- Escludi dal campetto i “non in listone”
+      if (isNonInList(p)) return false;
+
+      return getFVM(p) > 0;
+    })
+    .map(p => ({ ...p, _roles: parseRoles(p.ruolo), _fvm: getFVM(p) }))
+    .sort((a, b) => b._fvm - a._fvm);
+}, [allData, selectedSquadra, asteriscatiIds, asteriscatiNames]);
 
   const assignLineupGreedy = (slots: Slot, players: (Player & { _roles: Role[]; _fvm: number })[]) => {
     // Questa definizione è solo per firma; usiamo quella sotto che lavora su array
@@ -1158,7 +1162,11 @@ const processExcelData = (data: ArrayBuffer) => {
                     <tr key={`${p.id ?? i}-${p.giocatore}`} className={`hover:bg-gray-50 transition-colors ${rowBg}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <span className="text-sm font-medium text-gray-900">{p.giocatore}</span>
+                          <span className="text-sm font-medium text-gray-900">
+                                {p.giocatore}
+                                      {isNonInList(p) && (
+                                        <span className="ml-1 text-orange-600" title="Attualmente non in listone">*</span>
+                                      )}
                           <div className="text-xs text-gray-500">{p.squadraSerieA !== '#N/A' ? p.squadraSerieA : '-'}</div>
                         </div>
                       </td>
