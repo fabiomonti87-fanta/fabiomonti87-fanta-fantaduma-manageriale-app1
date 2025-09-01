@@ -485,7 +485,23 @@ const calculatePossibiliCrediti = (squadra: string): number => {
   const matchNonInLista = noListLegacy || inAsteriscati;
   if (!matchNonInLista) return false;
 }
-
+      
+if (filterType === 'scadenzaENonLista') {
+  // Controlla se è in scadenza
+  let inScadenza = false;
+  if (isValidDate(p.scadenzaIpotizzata)) {
+    const scad = new Date(String(p.scadenzaIpotizzata));
+    inScadenza = scad.getDate() === 1 && 
+                 scad.getMonth() === 6 && 
+                 scad.getFullYear() === 2025;
+  }
+  
+  // Controlla se è non in lista
+  const nonInLista = isNonInList(p);
+  
+  // Mostra se è in scadenza O non in lista
+  if (!(inScadenza || nonInLista)) return false;
+}
       if (isValidDate(p.scadenzaIpotizzata)) {
         const scad = new Date(String(p.scadenzaIpotizzata));
         const isScad2025 = scad.getDate() === 1 && scad.getMonth() === 6 && scad.getFullYear() === 2025;
@@ -498,7 +514,7 @@ const calculatePossibiliCrediti = (squadra: string): number => {
           if (!(hasDiritto && dopo)) return false;
         }
       } else {
-        if (!['tutti', 'vivaio', 'nonInListone'].includes(filterType)) return false;
+        if (!['tutti', 'vivaio', 'nonInListone', 'scadenzaENonLista'].includes(filterType)) return false;
       }
 
       if (normalizedQuery) {
@@ -930,13 +946,12 @@ const organicoPlayers = useMemo(() => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Filtro Giocatori</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'tutti', label: 'Tutti', cls: 'bg-green-600' },
-                  { key: 'scadenza', label: 'In Scadenza', cls: 'bg-red-600' },
-                  { key: 'organico', label: 'In Organico', cls: 'bg-blue-600' },
-                  { key: 'riconferme', label: 'Riconferme', cls: 'bg-purple-600' },
-                  { key: 'nonInListone', label: 'Non in Lista', cls: 'bg-orange-600' },
-                  { key: 'vivaio', label: <><Baby className="h-4 w-4 inline mr-1" />Vivaio</>, cls: 'bg-emerald-600' },
-                ].map(({ key, label, cls }) => (
+                      { key: 'tutti', label: 'Tutti', cls: 'bg-green-600' },
+                      { key: 'scadenzaENonLista', label: 'Scadenze/Non Lista', cls: 'bg-red-600' },
+                      { key: 'organico', label: 'In Organico', cls: 'bg-blue-600' },
+                      { key: 'riconferme', label: 'Riconferme', cls: 'bg-purple-600' },
+                      { key: 'vivaio', label: <><Baby className="h-4 w-4 inline mr-1" />Vivaio</>, cls: 'bg-emerald-600' },
+                    ].map(({ key, label, cls }) => (
                   <button
                     key={key}
                     onClick={() => setFilterType(key as typeof filterType)}
@@ -1177,6 +1192,15 @@ const organicoPlayers = useMemo(() => {
           </div>
         </div>
 
+        {filterType === 'scadenzaENonLista' && (
+  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+    <p className="text-sm text-amber-800">
+      <strong>📋 Filtro Scadenze/Non Lista attivo:</strong> Stai visualizzando i giocatori in scadenza al 01/07/2025 
+      e i giocatori attualmente non presenti nel listone ufficiale (asteriscati o senza FVM).
+      I giocatori con asterisco (*) sono quelli non in lista.
+    </p>
+  </div>
+)}
         {/* Tabella Rosa */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="px-6 py-4 bg-gradient-to-r from-green-600 to-green-700">
