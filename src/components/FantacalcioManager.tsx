@@ -448,16 +448,32 @@ const tipiValidi = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
     .reduce((s, p) => s + (Number(p.ingaggioReale) || 0), 0);
 
   const calculateContrattiPluriennali = (squadra: string): number => allData
-    .filter(p => {
-      if (p.squadraFantacalcio !== squadra) return false;
-      const organico = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
-      if (!organico.includes(String(p.tipoAcquisto || ''))) return false;
-      if (!isValidDate(p.scadenzaIpotizzata)) return false;
-      const scad = new Date(String(p.scadenzaIpotizzata));
-      if (!(scad > new Date('2025-07-01'))) return false;
-      const hasFVM = p.ultimoFVM && p.ultimoFVM !== '#N/A' && p.ultimoFVM !== '#N/D' && p.ultimoFVM !== '';
-      return Boolean(hasFVM);
-    }).length;
+  .filter(p => {
+    if (p.squadraFantacalcio !== squadra) return false;
+
+    // solo organico: escludi Vivaio
+    const organico = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
+    if (!organico.includes(String(p.tipoAcquisto || ''))) return false;
+
+    // deve essere pluriennale (dopo 01/07/2025)
+    if (!isValidDate(p.scadenzaIpotizzata)) return false;
+    const scad = new Date(String(p.scadenzaIpotizzata));
+    if (!(scad > new Date('2025-07-01'))) return false;
+
+    // deve essere nel listone (FVM valido)
+    const hasFVM =
+      !!p.ultimoFVM &&
+      p.ultimoFVM !== '#N/A' &&
+      p.ultimoFVM !== '#N/D' &&
+      String(p.ultimoFVM).trim() !== '';
+    if (!hasFVM) return false;
+
+    // escludi gli asteriscati / non-in-lista (scadenze+non-in-lista)
+    if (isNonInList(p)) return false;
+
+    return true;
+  }).length;
+
 
   // Filtri principali + ricerca + ruoli (OR)
   const normalizedQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
@@ -506,18 +522,39 @@ if (filterType === 'scadenzaENonLista') {
   // Mostra se è in scadenza O non in lista
   if (!(inScadenza || nonInLista)) return false;
 }
-      if (isValidDate(p.scadenzaIpotizzata)) {
-        const scad = new Date(String(p.scadenzaIpotizzata));
-        const isScad2025 = scad.getDate() === 1 && scad.getMonth() === 6 && scad.getFullYear() === 2025;
-        const dopo = scad > new Date('2025-07-01');
-        if (filterType === 'scadenza' && !isScad2025) return false;
-        if (filterType === 'organico' && !dopo) return false;
-        if (filterType === 'riconferme') {
-          const tc = String(p.tipoContratto || '').toLowerCase();
-          const hasDiritto = tc.includes('diritto') && !tc.includes('standard');
-          if (!(hasDiritto && dopo)) return false;
-        }
-      } else {
+   if (isValidDate(p.scadenzaIpotizzata)) {
+  const scad = new Date(String(p.scadenzaIpotizzata));
+  const isScad2025 =
+    scad.getDate() === 1 && scad.getMonth() === 6 && scad.getFullYear() === 2025;
+  const dopo = scad > new Date('2025-07-01');
+
+  if (filterType === 'scadenza' && !isScad2025) return false;
+
+  if (filterType === 'organico') {
+    // deve essere dopo il 01/07/2025 (pluriennale)
+    if (!dopo) return false;
+
+    // deve essere presente nel listone (ha un FVM valido)
+    const hasFVM =
+      !!p.ultimoFVM &&
+      p.ultimoFVM !== '#N/A' &&
+      p.ultimoFVM !== '#N/D' &&
+      String(p.ultimoFVM).trim() !== '';
+
+    if (!hasFVM) return false;
+
+    // escludi chi rientra nel concetto di “non in lista” (legacy + Asteriscati sheet)
+    if (isNonInList(p)) return false;
+  }
+
+  if (filterType === 'riconferme') {
+    const tc = String(p.tipoContratto || '').toLowerCase();
+    const hasDiritto = tc.includes('diritto') && !tc.includes('standard');
+    if (!(hasDiritto && dopo)) return false;
+  }
+} else {
+  if (!['tutti', 'vivaio', 'nonInListone', 'scadenzaENonLista'].includes(filterType)) return false;
+} else {
         if (!['tutti', 'vivaio', 'nonInListone', 'scadenzaENonLista'].includes(filterType)) return false;
       }
 
