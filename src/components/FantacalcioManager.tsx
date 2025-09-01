@@ -403,11 +403,14 @@ const calculatePossibiliCrediti = (squadra: string): number => {
   // Set per tracciare gli ID già conteggiati (evita duplicati)
   const conteggiatIds = new Set<number>();
   
-  // 1. Giocatori in scadenza al 01/07/2025
+  // Tipi di acquisto validi (ESCLUSO Vivaio)
+  const tipiValidi = TIPI_ACQUISTO.filter(t => t !== 'Vivaio' && t !== 'Promosso da vivaio');
+  
+  // 1. Giocatori in scadenza al 01/07/2025 (escluso Vivaio)
   const valoreScadenze = allData
     .filter(p => {
       if (p.squadraFantacalcio !== squadra) return false;
-      if (!TIPI_ACQUISTO.includes(String(p.tipoAcquisto || ''))) return false;
+      if (!tipiValidi.includes(String(p.tipoAcquisto || ''))) return false;
       if (!isValidDate(p.scadenzaIpotizzata)) return false;
       
       const scad = new Date(String(p.scadenzaIpotizzata));
@@ -423,11 +426,11 @@ const calculatePossibiliCrediti = (squadra: string): number => {
     })
     .reduce((s, p) => s + (Number(p.valoreXMercato) || 0), 0);
   
-  // 2. Giocatori "Non in lista" (che non sono già stati conteggiati)
+  // 2. Giocatori "Non in lista" (che non sono già stati conteggiati e non sono Vivaio)
   const valoreNonInLista = allData
     .filter(p => {
       if (p.squadraFantacalcio !== squadra) return false;
-      if (!TIPI_ACQUISTO.includes(String(p.tipoAcquisto || ''))) return false;
+      if (!tipiValidi.includes(String(p.tipoAcquisto || ''))) return false;
       
       // Se già conteggiato nelle scadenze, skip
       if (typeof p.id === 'number' && conteggiatIds.has(p.id)) return false;
