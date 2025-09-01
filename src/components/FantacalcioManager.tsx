@@ -168,7 +168,7 @@ const FantacalcioManager: React.FC = () => {
   const [squadre, setSquadre] = useState<string[]>([]);
   const [creditiSquadre, setCreditiSquadre] = useState<Record<string, number>>({});
   const [selectedSquadra, setSelectedSquadra] = useState<string>('');
-  const [filterType, setFilterType] = useState<'tutti' | 'scadenza' | 'organico' | 'riconferme' | 'nonInListone' | 'vivaio'>('tutti');
+  const [filterType, setFilterType] = useState<'tutti' | 'scadenza' | 'organico' | 'riconferme' | 'nonInListone' | 'vivaio' | 'scadenzaENonLista'>('tutti');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [fileLoaded, setFileLoaded] = useState<boolean>(false);
