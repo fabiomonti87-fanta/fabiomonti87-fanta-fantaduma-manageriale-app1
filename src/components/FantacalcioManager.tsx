@@ -403,8 +403,8 @@ const calculatePossibiliCrediti = (squadra: string): number => {
   // Set per tracciare gli ID già conteggiati (evita duplicati)
   const conteggiatIds = new Set<number>();
   
-  // Tipi di acquisto validi (ESCLUSO Vivaio)
-  const tipiValidi = TIPI_ACQUISTO.filter(t => t !== 'Vivaio' && t !== 'Promosso da vivaio');
+  // Tipi di acquisto validi (escludi SOLO Vivaio; "Promosso da vivaio" è valido)
+const tipiValidi = TIPI_ACQUISTO.filter(t => t !== 'Vivaio');
   
   // 1. Giocatori in scadenza al 01/07/2025 (escluso Vivaio)
   const valoreScadenze = allData
@@ -468,9 +468,10 @@ const calculatePossibiliCrediti = (squadra: string): number => {
 
       if (filterType === 'vivaio' && !(p.tipoAcquisto === 'Vivaio' || p.tipoAcquisto === 'Promosso da vivaio')) return false;
 
-      const tipi = filterType === 'organico'
-        ? TIPI_ACQUISTO.filter(t => t !== 'Vivaio')
-        : TIPI_ACQUISTO;
+      const tipi =
+        (filterType === 'organico' || filterType === 'scadenzaENonLista')
+          ? TIPI_ACQUISTO.filter(t => t !== 'Vivaio')  // escludi solo Vivaio
+          : TIPI_ACQUISTO;
 
       if (!tipi.includes(String(p.tipoAcquisto || ''))) return false;
 
