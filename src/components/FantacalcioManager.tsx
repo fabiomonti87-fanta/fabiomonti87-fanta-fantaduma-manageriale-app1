@@ -397,8 +397,48 @@ const processExcelData = (data: ArrayBuffer) => {
       && new Date(String(p.scadenzaIpotizzata)).getFullYear() === 2025)
     .reduce((s, p) => s + (Number(p.valoreXMercato) || 0), 0);
 
-  const calculatePossibiliCrediti = (squadra: string): number =>
-    (creditiSquadre[squadra] || 0) + calculateValoreInScadenza(squadra);
+const calculatePossibiliCrediti = (squadra: string): number => {
+  const creditiBase = creditiSquadre[squadra] || 0;
+  
+  // Set per tracciare gli ID già conteggiati (evita duplicati)
+  const conteggiatIds = new Set<number>();
+  
+  // 1. Giocatori in scadenza al 01/07/2025
+  const valoreScadenze = allData
+    .filter(p => {
+      if (p.squadraFantacalcio !== squadra) return false;
+      if (!TIPI_ACQUISTO.includes(String(p.tipoAcquisto || ''))) return false;
+      if (!isValidDate(p.scadenzaIpotizzata)) return false;
+      
+      const scad = new Date(String(p.scadenzaIpotizzata));
+      const isScad2025 = scad.getDate() === 1 && 
+                         scad.getMonth() === 6 && 
+                         scad.getFullYear() === 2025;
+      
+      if (isScad2025 && typeof p.id === 'number') {
+        conteggiatIds.add(p.id);
+        return true;
+      }
+      return false;
+    })
+    .reduce((s, p) => s + (Number(p.valoreXMercato) || 0), 0);
+  
+  // 2. Giocatori "Non in lista" (che non sono già stati conteggiati)
+  const valoreNonInLista = allData
+    .filter(p => {
+      if (p.squadraFantacalcio !== squadra) return false;
+      if (!TIPI_ACQUISTO.includes(String(p.tipoAcquisto || ''))) return false;
+      
+      // Se già conteggiato nelle scadenze, skip
+      if (typeof p.id === 'number' && conteggiatIds.has(p.id)) return false;
+      
+      // Verifica se è "Non in lista"
+      return isNonInList(p);
+    })
+    .reduce((s, p) => s + (Number(p.valoreXMercato) || 0), 0);
+  
+  return creditiBase + valoreScadenze + valoreNonInLista;
+};
 
   const calculateTotaleIngaggi = (squadra: string): number => allData
     .filter(p => p.squadraFantacalcio === squadra && TIPI_ACQUISTO.includes(String(p.tipoAcquisto || '')))
@@ -766,14 +806,15 @@ const organicoPlayers = useMemo(() => {
               </table>
             </div>
 
-            {/* Legenda */}
-            <div className="p-3 md:p-4 bg-gray-50 border-t text-[12px] md:text-xs text-gray-600">
-              <p className="mb-1"><strong>Legenda:</strong></p>
-              <ul className="space-y-1">
-                <li>• <strong>Contratti Pluriennali:</strong> in organico (scadenza &gt; 01/07/2025) presenti nel listone</li>
-                <li>• <strong>Possibili Crediti:</strong> crediti attuali + valore dei giocatori in scadenza al 01/07/2025</li>
-              </ul>
-            </div>
+{/* Legenda */}
+<div className="p-3 md:p-4 bg-gray-50 border-t text-[12px] md:text-xs text-gray-600">
+  <p className="mb-1"><strong>Legenda:</strong></p>
+  <ul className="space-y-1">
+    <li>• <strong>Contratti Pluriennali:</strong> in organico (scadenza &gt; 01/07/2025) presenti nel listone</li>
+    <li>• <strong>Possibili Crediti:</strong> crediti attuali + valore giocatori in scadenza al 01/07/2025 + valore giocatori non in lista (asteriscati o senza FVM)</li>
+    <li>• <strong>*</strong> indica giocatori attualmente non presenti nel listone ufficiale</li>
+  </ul>
+</div>
           </div>
 
           {/* Widget Prossime partite Serie A */}
@@ -849,16 +890,20 @@ const organicoPlayers = useMemo(() => {
                 <Users className="h-8 w-8 text-orange-500" />
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Possibili Crediti Totali</p>
-                  <p className="text-2xl font-bold text-green-600">{calculatePossibiliCrediti(selectedSquadra).toFixed(0)}</p>
-                  <p className="text-xs text-gray-500">(crediti + valore in scadenza)</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
-              </div>
-            </div>
+       <div className="bg-white rounded-lg shadow p-4">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm text-gray-600">Possibili Crediti Totali</p>
+      <p className="text-2xl font-bold text-green-600">
+        {calculatePossibiliCrediti(selectedSquadra).toFixed(0)}
+      </p>
+      <p className="text-xs text-gray-500">
+        (crediti + scadenze + non in lista*)
+      </p>
+    </div>
+    <TrendingUp className="h-8 w-8 text-green-500" />
+  </div>
+</div>
           </div>
         )}
 
