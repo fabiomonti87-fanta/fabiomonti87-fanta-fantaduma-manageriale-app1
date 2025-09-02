@@ -554,10 +554,7 @@ if (filterType === 'scadenzaENonLista') {
   }
 } else {
   if (!['tutti', 'vivaio', 'nonInListone', 'scadenzaENonLista'].includes(filterType)) return false;
-} else {
-        if (!['tutti', 'vivaio', 'nonInListone', 'scadenzaENonLista'].includes(filterType)) return false;
-      }
-
+}
       if (normalizedQuery) {
         const name = String(p.giocatore || '').toLowerCase();
         if (!name.includes(normalizedQuery)) return false;
