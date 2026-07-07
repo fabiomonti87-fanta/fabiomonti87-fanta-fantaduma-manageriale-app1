@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Lint e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  test:
+    # Scoreboard TDD del rules engine: rosso finché i 71 TC Must non passano (Sprint 1).
+    # Job separato dal build: il fallimento qui non blocca il deploy demo.
+    name: Rules engine (TC file 09)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
