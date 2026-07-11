@@ -3,6 +3,7 @@
 
 export * from './types';
 export * from './errors';
+export * from './esito';
 export * from './ingaggi';
 export * from './finestre';
 export * from './svincoli';

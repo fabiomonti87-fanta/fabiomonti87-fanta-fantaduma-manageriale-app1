@@ -1,12 +1,14 @@
 // Multe e contabilità euro — doc 02 §11.
 // Multe SOLO in euro → montepremi, escluse dal salary cap, nessuna decurtazione crediti.
 
-import { NotImplementedError } from './errors';
+import { round2 } from './esito';
 
 /** Multa mancata formazione: €20/giornata, €40 nelle ultime 5 giornate. */
 export function multaMancataFormazione(giornata: number, totaleGiornate: number): number {
-  void giornata; void totaleGiornate;
-  throw new NotImplementedError('multaMancataFormazione');
+  if (giornata < 1 || giornata > totaleGiornate) {
+    throw new Error(`multaMancataFormazione: giornata ${giornata} fuori range (1–${totaleGiornate})`);
+  }
+  return giornata > totaleGiornate - 5 ? 40 : 20;
 }
 
 /** Montepremi = quote iscrizione + monte ingaggi totale + multe. */
@@ -15,8 +17,7 @@ export function montepremi(input: {
   monteIngaggiTotaleEur: number;
   multeEur: number;
 }): number {
-  void input;
-  throw new NotImplementedError('montepremi');
+  return round2(input.quoteIscrizioneEur + input.monteIngaggiTotaleEur + input.multeEur);
 }
 
 /** Ripartizione: 33/20/12% campionato 1°/2°/3°, 15% somma punti, 13% coppa, 7% finalista. */
@@ -28,6 +29,12 @@ export function ripartizioneMontepremi(totaleEur: number): {
   vincitoreCoppa: number;
   finalistaCoppa: number;
 } {
-  void totaleEur;
-  throw new NotImplementedError('ripartizioneMontepremi');
+  return {
+    campionato1: round2(totaleEur * 0.33),
+    campionato2: round2(totaleEur * 0.2),
+    campionato3: round2(totaleEur * 0.12),
+    sommaPunti: round2(totaleEur * 0.15),
+    vincitoreCoppa: round2(totaleEur * 0.13),
+    finalistaCoppa: round2(totaleEur * 0.07),
+  };
 }

@@ -6,7 +6,7 @@ import {
   valoreSvincoloTransizioneEstiva,
   validaRescissione,
 } from '../svincoli';
-import { richiedeApplicationLayer } from './helpers';
+import { ADMIN, creaLega } from './fixtures';
 
 describe('Svincoli (§6)', () => {
   it('TC-038 [Must] STD in scadenza, estate: incasso FVM nuovo listone (42), nessun ingaggio residuo', () => {
@@ -56,7 +56,30 @@ describe('Svincoli (§6)', () => {
   });
 
   it('TC-047 [Must] transizione estiva, presente nel nuovo listone: incasso 60 subito o 70 a fine mercato (snapshot per data)', () => {
-    richiedeApplicationLayer('TC-047'); // richiede selezione snapshot FVM per data
+    // Il sistema usa lo snapshot corretto per data (invariante 7).
+    const scenario = () =>
+      creaLega({
+        contratti: [{ giocatore: 'C1', squadra: 'A', tipo: 'standard', prezzoCrediti: 40 }],
+        giocatori: [{ id: 'C1', nome: 'Contrattato' }],
+        snapshots: [
+          { giocatore: 'C1', fvmM: 60, data: '2026-07-01', source: 'listone_estivo' },
+          { giocatore: 'C1', fvmM: 70, data: '2026-08-31', source: 'update' }, // fine mercato svincoli
+        ],
+        oggi: '2026-07-05',
+      });
+
+    // (a) svincolo subito dopo il nuovo listone → 60
+    const legaA = scenario();
+    const opA = legaA.proponi({ tipo: 'svincolo', squadra: 'A', giocatore: 'C1', caso: 'scadenza_estate' }, ADMIN);
+    legaA.convalida(opA.id, ADMIN);
+    expect(legaA.movimentiCrediti.find((m) => m.causale === 'svincolo')!.importo).toBe(60);
+
+    // (b) svincolo a fine mercato svincoli → 70
+    const legaB = scenario();
+    legaB.oggi = '2026-09-01';
+    const opB = legaB.proponi({ tipo: 'svincolo', squadra: 'A', giocatore: 'C1', caso: 'scadenza_estate' }, ADMIN);
+    legaB.convalida(opB.id, ADMIN);
+    expect(legaB.movimentiCrediti.find((m) => m.causale === 'svincolo')!.importo).toBe(70);
   });
 
   it('TC-048 [Must] depennato post pubblicazione listone: incasso = ultimo FVM disponibile (45)', () => {

@@ -2,11 +2,21 @@
 import { describe, expect, it } from 'vitest';
 import { incassoAsteriscato, validaSostitutoAsteriscato } from '../asteriscati';
 import { incassoSvincolo } from '../svincoli';
-import { richiedeApplicationLayer } from './helpers';
+import { ADMIN, creaLega } from './fixtures';
 
 describe('Asteriscati (§8)', () => {
   it('TC-053 [Must] asterisco rende inutilizzabile: stato aggiornato, alert, ingaggio resta a bilancio', () => {
-    richiedeApplicationLayer('TC-053');
+    const lega = creaLega({
+      contratti: [{ giocatore: 'W', squadra: 'A', tipo: 'standard', prezzoCrediti: 35 }],
+    });
+    const montePrima = lega.monteIngaggi('A');
+
+    const esito = lega.applicaAsterisco('W', ADMIN);
+
+    expect(lega.voceRosaAttiva('W')?.stato).toBe('asteriscato'); // stato aggiornato
+    expect(esito.alertSquadra).toBe('A'); // alert alla squadra
+    expect(lega.monteIngaggi('A')).toBe(montePrima); // ingaggio resta a bilancio finché in rosa
+    expect(lega.audit.some((a) => a.entita === 'roster_entry' && a.azione === 'UPDATE')).toBe(true);
   });
 
   it('TC-054 [Must] svincolo asteriscato: incasso FVM M del momento (38)', () => {
@@ -50,6 +60,25 @@ describe('Asteriscati (§8)', () => {
   });
 
   it('TC-059 [Should] asterisco nel mercato invernale pre-asta: sostituto come prestito gratuito, svincolato all asta', () => {
-    richiedeApplicationLayer('TC-059');
+    // W (fvm 40) asteriscato a gennaio pre-asta; sostituto S (fvm 30 ≤ 40) dalla lista svincolati.
+    const lega = creaLega({
+      contratti: [{ giocatore: 'W', squadra: 'A', tipo: 'standard', prezzoCrediti: 35 }],
+    });
+    lega.applicaAsterisco('W', ADMIN);
+    const budgetPrima = lega.budget('A');
+
+    const op = lega.proponi(
+      { tipo: 'sost_asteriscato', squadra: 'A', asteriscato: 'W', sostituto: 'S', preAsta: true },
+      ADMIN
+    );
+    lega.convalida(op.id, ADMIN);
+
+    // sostituto a titolo gratuito come prestito
+    expect(lega.budget('A')).toBe(budgetPrima); // zero crediti spesi
+    expect(lega.voceRosaAttiva('S')?.stato).toBe('prestito_in');
+
+    // all'apertura dell'asta viene svincolato e reso disponibile a tutti
+    lega.apriSessioneMercato('asta_invernale');
+    expect(lega.voceRosaAttiva('S')).toBeUndefined();
   });
 });

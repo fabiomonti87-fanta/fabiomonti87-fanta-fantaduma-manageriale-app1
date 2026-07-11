@@ -1,20 +1,20 @@
 // Asteriscati e Osimhen Gate — doc 02 §8.
 
-import { NotImplementedError } from './errors';
+import { bloccato, consentito } from './esito';
 import type { EsitoValidazione } from './types';
 
 /**
  * Incasso allo svincolo di un asteriscato.
  * Osimhen Gate: se asteriscato prima dell'apertura della sessione di mercato successiva
  * all'asta d'acquisto → incasso = crediti spesi (niente plus/minusvalenza).
+ * Altrimenti: FVM M del momento.
  */
 export function incassoAsteriscato(input: {
   creditiSpesi: number;
   fvmAttuale: number;
   asteriscatoPrimaNuovaSessione: boolean;
 }): number {
-  void input;
-  throw new NotImplementedError('incassoAsteriscato');
+  return input.asteriscatoPrimaNuovaSessione ? input.creditiSpesi : input.fvmAttuale;
 }
 
 /**
@@ -26,6 +26,14 @@ export function validaSostitutoAsteriscato(input: {
   fvmSostituto: number;
   daListaSvincolatiPostUltimaAsta: boolean;
 }): EsitoValidazione {
-  void input;
-  throw new NotImplementedError('validaSostitutoAsteriscato');
+  const violazioni: string[] = [];
+  if (!input.daListaSvincolatiPostUltimaAsta) {
+    violazioni.push('sostituto non presente nella lista svincolati post ultima asta');
+  }
+  if (input.fvmSostituto > input.fvmAsteriscato) {
+    violazioni.push(
+      `FVM sostituto (${input.fvmSostituto}) superiore al FVM dell'asteriscato (${input.fvmAsteriscato})`
+    );
+  }
+  return violazioni.length > 0 ? bloccato(...violazioni) : consentito();
 }

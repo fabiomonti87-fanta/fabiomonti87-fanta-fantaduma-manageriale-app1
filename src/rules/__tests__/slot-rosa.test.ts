@@ -1,7 +1,7 @@
 // Slot pluriennali e limiti rosa — doc 02 §4.
 import { describe, expect, it } from 'vitest';
 import { checkRosa, checkSlotPluriennali, checkVivaio } from '../validators';
-import { richiedeApplicationLayer } from './helpers';
+import { creaLega } from './fixtures';
 
 describe('Slot e rosa (§4)', () => {
   it("TC-020 [Must] BLOCCO 12° pluriennale prima dell'asta invernale (max 11)", () => {
@@ -15,7 +15,19 @@ describe('Slot e rosa (§4)', () => {
   });
 
   it('TC-022 [Must] rollover: slot tornano 11, squadre a 12 segnalate fuori parametro', () => {
-    richiedeApplicationLayer('TC-022');
+    // Squadra A con 12 pluriennali (legittimi post asta invernale) a fine stagione.
+    const giocatori = Array.from({ length: 12 }, (_, i) => ({ id: `P${i + 1}`, nome: `Pluri ${i + 1}` }));
+    const lega = creaLega({
+      giocatori,
+      snapshots: giocatori.map((g) => ({ giocatore: g.id, fvmM: 10, data: '2026-08-20' })),
+      contratti: giocatori.map((g) => ({ giocatore: g.id, squadra: 'A', tipo: 'obbligo_1_1' as const, prezzoCrediti: 10 })),
+    });
+    lega.apriSessioneMercato('asta_invernale'); // 12° slot era legittimo
+
+    const esito = lega.rolloverStagione();
+
+    expect(esito.fuoriParametroSlot).toContain('A'); // deve rientrare a 11 prima della nuova stagione
+    expect(lega.postAstaInvernale).toBe(false); // gli slot sono tornati 11
   });
 
   it('TC-023 [Must] scambio 1↔1 di pluriennali con 11 attivi: netto 11 → consentito (atomico)', () => {

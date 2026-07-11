@@ -1,7 +1,7 @@
 // Salary cap — doc 02 §3.
 import { describe, expect, it } from 'vitest';
 import { baseCapEur, checkSalaryCap } from '../validators';
-import { richiedeApplicationLayer } from './helpers';
+import { ADMIN, creaLega } from './fixtures';
 
 describe('Salary cap (§3)', () => {
   it('TC-015 [Must] BLOCCO hard a 250 €: 245 + 6 = 251 → bloccato', () => {
@@ -25,6 +25,19 @@ describe('Salary cap (§3)', () => {
   });
 
   it('TC-019 [Should] rientro forzato post-asta: incasso = valore acquisto in crediti, senza plus/minusvalenze', () => {
-    richiedeApplicationLayer('TC-019');
+    // Giocatore pagato 60 crediti; il FVM nel frattempo è salito a 90.
+    const lega = creaLega({
+      contratti: [{ giocatore: 'Y', squadra: 'A', tipo: 'standard', prezzoCrediti: 60 }],
+    });
+    lega.aggiungiSnapshot('Y', 90, '2026-08-21');
+    const budgetPrima = lega.budget('A');
+
+    const incasso = lega.svincoloRientroCap('Y', ADMIN);
+
+    expect(incasso).toBe(60); // valore di acquisto, NON il FVM 90: nessuna plusvalenza
+    expect(lega.budget('A')).toBe(budgetPrima + 60);
+    const mov = lega.movimentiCrediti.find((m) => m.causale === 'svincolo')!;
+    expect(mov.importo).toBe(60);
+    expect(mov.fvmSnapshotId).toBeUndefined(); // l'incasso non deriva da un FVM
   });
 });

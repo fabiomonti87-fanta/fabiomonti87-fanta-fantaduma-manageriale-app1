@@ -1,16 +1,15 @@
 // Vivaio — doc 02 §9: 3 slot extra rosa, ingaggio fisso 0,50 €, U21 al draft,
 // permanenza fino a 22 anni, promozione/svincolo solo a fine stagione.
 
-import { NotImplementedError } from './errors';
+import { bloccato, consentito } from './esito';
 import type { EsitoValidazione } from './types';
 
-/** Ordine draft: inverso di classifica finale stagione precedente, a giri. */
+/** Ordine draft: inverso di classifica finale stagione precedente (l'ultimo sceglie per primo). */
 export function ordineDraft(classificaFinale: string[]): string[] {
-  void classificaFinale;
-  throw new NotImplementedError('ordineDraft');
+  return [...classificaFinale].reverse();
 }
 
-/** Pick draft: costo = FVM M; richiede slot vivaio libero, crediti sufficienti, cap ok, filtro U21. */
+/** Pick draft: costo = FVM M; richiede filtro U21, slot vivaio libero, crediti sufficienti, cap ok. */
 export function validaPickDraft(input: {
   under21AlGiornoDraft: boolean;
   fvmM: number;
@@ -19,14 +18,28 @@ export function validaPickDraft(input: {
   slotVivaioMax: number;
   capOk: boolean;
 }): EsitoValidazione {
-  void input;
-  throw new NotImplementedError('validaPickDraft');
+  const violazioni: string[] = [];
+  if (!input.under21AlGiornoDraft) {
+    violazioni.push('giocatore fuori dal filtro under 21 di Fantacalcio.it al giorno del draft');
+  }
+  if (input.slotVivaioOccupati >= input.slotVivaioMax) {
+    violazioni.push(`slot vivaio esauriti (${input.slotVivaioOccupati}/${input.slotVivaioMax})`);
+  }
+  if (input.budgetCrediti < input.fvmM) {
+    violazioni.push(`crediti insufficienti: pick a ${input.fvmM}, budget ${input.budgetCrediti}`);
+  }
+  if (!input.capOk) {
+    violazioni.push('salary cap violato');
+  }
+  return violazioni.length > 0 ? bloccato(...violazioni) : consentito();
 }
 
 /** Promozione in prima squadra: solo a fine stagione, gratuita. */
 export function validaPromozioneVivaio(input: { fineStagione: boolean }): EsitoValidazione {
-  void input;
-  throw new NotImplementedError('validaPromozioneVivaio');
+  if (!input.fineStagione) {
+    return bloccato('promozione dal vivaio consentita solo a fine stagione');
+  }
+  return consentito();
 }
 
 /** Scambi vivaio: consentiti (anche con crediti) se slot vivaio destinazione, budget e cap ok. */
@@ -36,6 +49,14 @@ export function validaScambioVivaio(input: {
   capOk: boolean;
   destinazioneSlotKind: 'rosa' | 'vivaio';
 }): EsitoValidazione {
-  void input;
-  throw new NotImplementedError('validaScambioVivaio');
+  const violazioni: string[] = [];
+  if (input.destinazioneSlotKind !== 'vivaio') {
+    violazioni.push('un giocatore del vivaio può occupare solo slot vivaio (mai slot rosa)');
+  }
+  if (input.slotVivaioLiberiDestinazione < 1) {
+    violazioni.push('nessuno slot vivaio libero nella squadra di destinazione');
+  }
+  if (!input.budgetOk) violazioni.push('budget crediti insufficiente');
+  if (!input.capOk) violazioni.push('salary cap violato');
+  return violazioni.length > 0 ? bloccato(...violazioni) : consentito();
 }
