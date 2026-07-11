@@ -285,7 +285,7 @@ const FantacalcioManager: React.FC = () => {
 const processExcelData = (data: ArrayBuffer) => {
   try {
     const wb = XLSX.read(data, {
-      type: 'array', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true, sheetStubs: true
+      type: 'array', cellStyles: true, cellFormula: true, cellDates: true, cellNF: true, sheetStubs: true
     });
 
     const gestionale = wb.Sheets['Gestionale'];

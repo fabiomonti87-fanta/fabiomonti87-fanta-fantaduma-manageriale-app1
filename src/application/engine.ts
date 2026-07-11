@@ -154,12 +154,26 @@ export interface LegaSeed {
   /** Stato iniziale (stile migrazione): crea contratto+rosa senza passare dal workflow. */
   contrattiIniziali?: {
     giocatore: string;
+    /** Proprietario del contratto/slot pluriennale. */
     squadra: string;
+    /** Squadra nella cui rosa compare il giocatore (diversa dal proprietario nei prestiti). */
+    squadraRosa?: string;
+    /** Squadra a cui imputare la quota d'ingaggio corrente. */
+    squadraAddebito?: string;
     tipo: ContractType;
     prezzoCrediti?: number;
     slot?: 'rosa' | 'vivaio';
     addebitaIngaggio?: boolean;
+    /** Migrazione: FVM congelato dal foglio (se assente si usa l'ultimo snapshot). */
+    fvmCongelato?: number;
+    /** Migrazione: quota ingaggio a carico della stagione corrente dal foglio ("Ingaggio reale"). */
+    ingaggioStagioneEur?: number;
+    annoCorrente?: number;
+    stato?: VoceRosa['stato'];
+    dal?: string; // data acquisto
   }[];
+  /** Migrazione: addebiti euro senza contratto attivo (residui ingaggio di svincolati/ceduti). */
+  addebitiEuroIniziali?: { squadra: string; importoEur: number; causale?: CausaleEuro }[];
   oggi?: string;
 }
 
@@ -227,15 +241,24 @@ export class LegaEngine {
       });
     }
     for (const c of seed.contrattiIniziali ?? []) {
-      const snap = this.fvmAllaData(c.giocatore);
+      let snap: Snapshot;
+      if (c.fvmCongelato !== undefined) {
+        // valore congelato dal foglio: snapshot 'manual' datato all'acquisto,
+        // così non oscura gli snapshot più recenti in fvmAllaData
+        snap = { id: this.id('fvm'), giocatore: c.giocatore, fvmM: c.fvmCongelato, data: c.dal ?? this.oggi, source: 'manual' };
+        this.snapshots.push(snap);
+      } else {
+        snap = this.fvmAllaData(c.giocatore);
+      }
       const piano = pianoIngaggi(c.tipo, snap.fvmM);
+      const annoCorrente = Math.min(c.annoCorrente ?? 1, piano.length);
       this.contratti.push({
         id: this.id('ctr'),
         giocatore: c.giocatore,
         squadra: c.squadra,
         tipo: c.tipo,
         anniTotali: piano.length,
-        annoCorrente: 1,
+        annoCorrente,
         fvmCongelato: snap.fvmM,
         fvmSnapshotId: snap.id,
         ingaggioBaseEur: piano[0],
@@ -247,21 +270,30 @@ export class LegaEngine {
       const slot = c.slot ?? (c.tipo === 'vivaio' ? 'vivaio' : 'rosa');
       this.rosa.push({
         id: this.id('rst'),
-        squadra: c.squadra,
+        squadra: c.squadraRosa ?? c.squadra,
         giocatore: c.giocatore,
-        stato: slot === 'vivaio' ? 'vivaio' : 'in_rosa',
+        stato: c.stato ?? (slot === 'vivaio' ? 'vivaio' : 'in_rosa'),
         slot,
-        dal: this.oggi,
+        dal: c.dal ?? this.oggi,
       });
       if (c.addebitaIngaggio !== false) {
         this.movimentiEuro.push({
           id: this.id('me'),
-          squadra: c.squadra,
-          importoEur: piano[0],
+          squadra: c.squadraAddebito ?? c.squadra,
+          importoEur: c.ingaggioStagioneEur ?? piano[annoCorrente - 1] ?? piano[0],
           causale: 'ingaggio',
           creatoIl: this.oggi,
         });
       }
+    }
+    for (const a of seed.addebitiEuroIniziali ?? []) {
+      this.movimentiEuro.push({
+        id: this.id('me'),
+        squadra: a.squadra,
+        importoEur: a.importoEur,
+        causale: a.causale ?? 'ingaggio',
+        creatoIl: this.oggi,
+      });
     }
   }
 

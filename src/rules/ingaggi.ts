@@ -35,16 +35,19 @@ const PIANI: Record<Exclude<ContractType, 'vivaio'>, { pct: number[]; mezzoAnno1
 
 /**
  * Piano ingaggi per anno (€) dato tipo contratto e FVM M congelato.
- * Esempio regolamento (FVM 100): Obbligo 1+2 → 11,50/11,50/11,00;
- * Inverno Obbligo 0,5+2 → 6,50/11,50/11,00 (½ STD 5,00 + maggiorazione piena 1,50).
- * Vivaio: fisso 0,50 €/anno indipendente dal FVM M.
+ * Formula confermata da Fabio l'11/07/2026 (decisione S2-2, prassi storica del foglio):
+ * ingaggio anno = ceil_to(FVM × 0,10 × fattore; 0,50), min 0,50 €
+ * dove fattore = (1 + maggiorazione) per gli anni pieni e (0,5 + maggiorazione)
+ * per il 1° anno dei contratti invernali. L'arrotondamento per eccesso è FINALE
+ * (dopo la maggiorazione), non sul solo STD.
+ * Esempi regolamento (FVM 100): Obbligo 1+2 → 11,50/11,50/11,00;
+ * Inverno Obbligo 0,5+2 → 6,50/11,50/11,00. Vivaio: fisso 0,50 €/anno.
  */
 export function pianoIngaggi(tipo: ContractType, fvmM: number): number[] {
   if (tipo === 'vivaio') return [0.5];
   const spec = PIANI[tipo];
-  const std = ingaggioStd(fvmM);
   return spec.pct.map((pct, i) => {
-    const base = i === 0 && spec.mezzoAnno1 ? std / 2 : std;
-    return round2(base + std * (pct / 100));
+    const fattore = (i === 0 && spec.mezzoAnno1 ? 0.5 : 1) + pct / 100;
+    return Math.max(ceilTo(fvmM * 0.1 * fattore, 0.5), 0.5);
   });
 }

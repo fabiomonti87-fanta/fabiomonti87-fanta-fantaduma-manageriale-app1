@@ -55,6 +55,16 @@ Le seguenti regole NON sono aperte: sono nel Regolamento 2025.26 e sono formaliz
 | S0-1 | STIMA — arrotondamento (TC-049) | Vale la **formula esatta**: `(180×0,49)+(350×0,44) = 242,20`. Il "242" dell'esempio nel regolamento è solo l'arrotondamento di presentazione, NON una regola di troncamento. Nessun arrotondamento a intero sulla STIMA (coerente con TC-050 = 38,65). Confermato da Fabio l'11/07/2026. Il test asserisce 242,20 |
 | S0-2 | GRANT ruoli API Supabase | Aggiunta migrazione `20260707000600_grants.sql`: con "Automatically expose new tables" disattivato, le tabelle create via SQL non ricevono i privilegi per `authenticated`/`service_role` → serve grant esplicito (la RLS resta il gatekeeper sulle righe) |
 
+## 3-ter. Decisioni Sprint 2 (11/07/2026, confermate da Fabio analizzando il GESTIONALE reale)
+
+| # | Punto | Risoluzione |
+|---|-------|-------------|
+| S2-1 | Ordine budget Riepilogo | Il foglio "Riepilogo ingaggi E budget" (C2:C11) non ha i nomi squadra: l'ordine NON è quello del foglio elenchi. **Abbinamento squadra→budget da fornire da Fabio** (in attesa) |
+| S2-2 | Formula arrotondamento ingaggi | Vale la prassi del foglio: `ingaggio anno = ceil_to(FVM × 0,10 × fattore; 0,50)` con arrotondamento per eccesso FINALE (dopo la maggiorazione). Fattore = 1+magg per anni pieni, 0,5+magg per il 1° anno invernale. Coerente con gli esempi del regolamento (FVM 100). Il doc 02 §2 va letto con questa precisazione |
+| S2-3 | 3° anno Obbligo 1+2: +10% | Confermato il regolamento (+10%). Il FOGLIO applicava erroneamente +15% anche al 3° anno: i valori migrati (storico 25/26) restano come da foglio, le nuove operazioni usano +10%. Gli "scostamenti ingaggio" del report di quadratura su questo punto sono attesi |
+| S2-4 | Rose a 31 / Ceretolo 13 slot | 3 squadre risultano con 31 attivi e Ceretolo con 13 pluriennali dalla classificazione dei Tipo Acquisto. **Da rivedere con Fabio sul file rose** (in attesa) |
+| S2-5 | Colonna "Ingaggio 36 giornate" | È l'ingaggio ANNUO PIENO ricalcolato dal FVM: per i contratti invernali non è dimezzata e per il vivaio non vale (0,50 fisso). La quota effettiva a bilancio è "Ingaggio reale" |
+
 ## 4. Fuori scope MVP (confermato)
 
 Voti, risultati, classifiche, calendario, formazioni, mercato ufficiale Fantacalcio.it, sync automatica (fase futura, decisione D2), notifiche push, app nativa, gamification.
@@ -64,3 +74,9 @@ Voti, risultati, classifiche, calendario, formazioni, mercato ufficiale Fantacal
 1. Consegna allo sviluppo: docs 00–03 + regolamento PDF + accesso in lettura al GESTIONALE_UFFICIALE per la migrazione.
 2. Sprint 0: setup Next.js + Supabase, schema DB (doc 03), import migrazione con quadratura sul foglio.
 3. Riscrittura dei test case (09_Test_Cases) sulle regole del doc 02 §12.
+### Decisioni Sprint 2 confermate il 12/07/2026
+
+- I budget sono associati alle squadre tramite l'export rose indipendente: AS Intomatici 2, Bimbe di Tonali 48, Ceretolo 3, Darmian 21, Iperzola 25, Molino 182, Nirvana 121, Seven 51, Werder 47, Woods 55.
+- `Svincolato riconferma anno corrente` conserva l'impatto economico ma non occupa un posto nella rosa attiva.
+- McTominay è in prestito all'Iperzola con cartellino e slot pluriennale del Werder.
+- I giocatori del vivaio restano validi anche quando non militano attualmente in Serie A e non compaiono nell'export rose.
