@@ -48,6 +48,13 @@ Le seguenti regole NON sono aperte: sono nel Regolamento 2025.26 e sono formaliz
 | A3 | Multe | Solo **euro** → montepremi, escluse dal salary cap. Nessuna decurtazione crediti |
 | A4 | Ammortamento ingaggi | **Per finestre: 20% a finestra scambi** (regolamento). Acquisti asta invernale e svincoli a metà anno = 50%. La colonna "Ingaggio 36 giornate" del foglio è solo un dettaglio implementativo, non una regola |
 
+## 3-bis. Note di esecuzione Sprint 0 (11/07/2026)
+
+| # | Punto | Risoluzione |
+|---|-------|-------------|
+| S0-1 | STIMA — arrotondamento (TC-049) | Vale la **formula esatta**: `(180×0,49)+(350×0,44) = 242,20`. Il "242" dell'esempio nel regolamento è solo l'arrotondamento di presentazione, NON una regola di troncamento. Nessun arrotondamento a intero sulla STIMA (coerente con TC-050 = 38,65). Confermato da Fabio l'11/07/2026. Il test asserisce 242,20 |
+| S0-2 | GRANT ruoli API Supabase | Aggiunta migrazione `20260707000600_grants.sql`: con "Automatically expose new tables" disattivato, le tabelle create via SQL non ricevono i privilegi per `authenticated`/`service_role` → serve grant esplicito (la RLS resta il gatekeeper sulle righe) |
+
 ## 4. Fuori scope MVP (confermato)
 
 Voti, risultati, classifiche, calendario, formazioni, mercato ufficiale Fantacalcio.it, sync automatica (fase futura, decisione D2), notifiche push, app nativa, gamification.

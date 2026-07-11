@@ -14,6 +14,7 @@ Restano i passi che richiedono account e credenziali.
      3. `20260707000300_views.sql`
      4. `20260707000400_rls.sql`
      5. `20260707000500_audit.sql`
+     6. `20260707000600_grants.sql` (obbligatoria se "Automatically expose new tables" è disattivato — senza, le richieste API danno "permission denied")
    - **Supabase CLI** (consigliato a regime): `npm i -g supabase`, poi
      `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`.
 3. Auth → Providers: **Email** attivo con magic link (default). Disattivare Signup se si vogliono solo utenti invitati.
