@@ -14,7 +14,7 @@ function exportCsv(filename: string, rows: unknown[][]) {
   URL.revokeObjectURL(link.href);
 }
 
-export default function ConsultationDashboard({ data }: { data: ConsultationData }) {
+export default function ConsultationDashboard({ data, ruolo = 'viewer' }: { data: ConsultationData; ruolo?: 'super_admin' | 'president' | 'viewer' }) {
   const [team, setTeam] = useState('Tutte');
   const [query, setQuery] = useState('');
   const [slot, setSlot] = useState('tutti');
@@ -28,7 +28,11 @@ export default function ConsultationDashboard({ data }: { data: ConsultationData
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">FANTADUMA MANAGERIALE</p><h1>Centro di controllo della lega</h1></div>
       <div className="season"><span className="live-dot" /> Stagione 2025/26 · dati al {data.aggiornatoAl}</div></header>
-    <nav className="tabs"><button className="active">Lega</button><button onClick={() => document.getElementById('rosa')?.scrollIntoView()}>Rose e contratti</button><button onClick={() => document.getElementById('export')?.scrollIntoView()}>Export</button></nav>
+    <nav className="tabs" style={{flexWrap:'wrap'}}><button className="active">Lega</button><button onClick={() => document.getElementById('rosa')?.scrollIntoView()}>Rose e contratti</button><button onClick={() => document.getElementById('export')?.scrollIntoView()}>Export</button>
+      <a className="nav-link" href="/operazioni">Operazioni</a>
+      {ruolo !== 'viewer' && <a className="nav-link" href="/operazioni/nuova">Nuova operazione</a>}
+      {ruolo === 'super_admin' && <><a className="nav-link" href="/approvazioni">Approvazioni</a><a className="nav-link" href="/mercato">Mercato e multe</a><a className="nav-link" href="/import-fvm">Import FVM</a></>}
+    </nav>
 
     <section className="hero-grid">
       <article className="league-card"><div className="card-title"><ShieldCheck size={18}/><span>Quadro lega</span></div>

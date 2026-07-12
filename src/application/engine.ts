@@ -39,7 +39,14 @@ export interface UtenteSeed {
   squadra?: string;
 }
 export interface SquadraSeed { id: string; nome: string; crediti?: number }
-export interface GiocatoreSeed { id: string; nome: string; ruoli?: string[]; nascita?: string }
+export interface GiocatoreSeed {
+  id: string;
+  nome: string;
+  ruoli?: string[];
+  nascita?: string;
+  /** Idratazione da DB: stato listone già noto (default 'in_listone'). */
+  listone?: 'in_listone' | 'asteriscato' | 'assente';
+}
 export interface SnapshotSeed { giocatore: string; fvmM: number; data: string; source?: string }
 
 export interface StagioneConfig {
@@ -175,6 +182,10 @@ export interface LegaSeed {
   /** Migrazione: addebiti euro senza contratto attivo (residui ingaggio di svincolati/ceduti). */
   addebitiEuroIniziali?: { squadra: string; importoEur: number; causale?: CausaleEuro }[];
   oggi?: string;
+  /** Adapter DB: generatore id (es. UUID) così le nuove entità nascono già con l'id di persistenza. */
+  genId?: () => string;
+  /** Adapter DB: stato mercato ricostruito dalle market_windows. */
+  mercato?: { sessioneCorrente?: number; finestraOrdinal?: number | null; postAstaInvernale?: boolean };
 }
 
 interface GiocatoreInterno extends GiocatoreSeed {
@@ -205,7 +216,15 @@ export class LegaEngine {
   /** Residui ingaggio dovuti negli anni futuri dopo uno svincolo (proiezione pluriennale). */
   readonly residuiFuturi: { squadra: string; giocatore: string; importoEur: number; anniNelFuturo: number }[] = [];
 
+  private genId?: () => string;
+
   constructor(seed: LegaSeed) {
+    this.genId = seed.genId;
+    if (seed.mercato) {
+      this.sessioneCorrente = seed.mercato.sessioneCorrente ?? this.sessioneCorrente;
+      this.finestraOrdinal = seed.mercato.finestraOrdinal ?? null;
+      this.postAstaInvernale = seed.mercato.postAstaInvernale ?? false;
+    }
     this.stagione = {
       capEur: 250,
       minIngaggiEur: 50,
@@ -230,7 +249,7 @@ export class LegaEngine {
         });
       }
     }
-    for (const g of seed.giocatori) this.giocatori.set(g.id, { ...g, listone: 'in_listone' });
+    for (const g of seed.giocatori) this.giocatori.set(g.id, { ...g, listone: g.listone ?? 'in_listone' });
     for (const sn of seed.snapshots) {
       this.snapshots.push({
         id: this.id('fvm'),
@@ -408,13 +427,14 @@ export class LegaEngine {
     // Invariante 10: nessun movimento finché non convalidata.
   }
 
-  convalida(opId: string, adminId: string): void {
+  convalida(opId: string, adminId: string, opts: { forza?: boolean } = {}): void {
     const op = this.operazione(opId);
     this.richiediSuperAdmin(adminId);
     if (op.stato !== 'pending') {
       throw new Error(`operazione ${opId} non pendente (stato: ${op.stato})`);
     }
-    this.valida(op.proposta); // rivalidazione al momento della convalida
+    // Forzatura Super Admin (doc 01 §3.3): salta la rivalidazione, resta tracciata in audit.
+    if (!opts.forza) this.valida(op.proposta); // rivalidazione al momento della convalida
     this.applica(op); // transazione unica: validazione già superata, poi tutti gli effetti
     op.stato = 'approved';
     op.decisaDa = adminId;
@@ -986,6 +1006,7 @@ export class LegaEngine {
   }
 
   private id(prefix: string): string {
+    if (this.genId) return this.genId();
     this.seq += 1;
     return `${prefix}_${this.seq}`;
   }
