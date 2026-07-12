@@ -1,8 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true }, // opzionale
+  outputFileTracingRoot: process.cwd(),
+  outputFileTracingIncludes: {
+    '/': ['./data/GESTIONALE_UFFICIALE.xlsx'],
+  },
 };
 
 export default nextConfig;

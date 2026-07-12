@@ -1,12 +1,8 @@
-'use client';
+import ConsultationDashboard from '../components/ConsultationDashboard';
+import { loadConsultationData } from '../lib/consultation-data';
 
-import dynamic from 'next/dynamic';
-
-const FantacalcioManager = dynamic(
-  () => import('../components/FantacalcioManager'),
-  { ssr: false }
-);
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
-  return <FantacalcioManager />;
+  return <ConsultationDashboard data={loadConsultationData()} />;
 }
