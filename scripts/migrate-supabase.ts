@@ -167,6 +167,9 @@ async function main() {
       amount_due_eur: piano[Math.min(c.annoCorrente, piano.length) - 1] ?? c.ingaggioReale,
       amount_charged_eur: c.ingaggioReale, // valore dal foglio: fonte di verità per il pregresso (D4)
       status: 'active',
+      // l'ingaggio è a carico della squadra che OSPITA il giocatore (prestiti inclusi),
+      // non del proprietario del contratto — convenzione del foglio (quadratura.ts)
+      team_id: teamId.get(c.squadra)!,
     });
     if (eCh) throw new Error(`charges (${c.nome}): ${eCh.message}`);
   }

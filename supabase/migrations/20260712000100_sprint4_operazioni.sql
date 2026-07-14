@@ -7,11 +7,15 @@
 -- 4) bootstrap public.users da auth.users + trigger alla registrazione.
 -- 5) RPC sprint4_esegui: scritture multi-tabella in transazione unica (solo service role).
 
--- 1. attribuzione immutabile degli addebiti
+-- 1. attribuzione immutabile degli addebiti.
+--    Convenzione del foglio (vedi quadratura.ts): l'ingaggio è a carico della squadra
+--    che OSPITA il giocatore (prestiti inclusi), non del proprietario del contratto.
 alter table contract_year_charges add column if not exists team_id uuid references teams(id);
 update contract_year_charges cyc
-set team_id = c.team_id
+set team_id = coalesce(r.team_id, c.team_id)
 from contracts c
+left join roster_entries r
+  on r.player_id = c.player_id and r.end_date is null
 where c.id = cyc.contract_id and cyc.team_id is null;
 
 -- 2. sessione d'acquisto (0 = pregresso migrato: mai in Osimhen Gate)

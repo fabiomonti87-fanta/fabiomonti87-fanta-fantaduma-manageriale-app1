@@ -29,9 +29,14 @@ contratti (Osimhen Gate), vista monte ingaggi corretta, vista `v_fvm_ultimo`,
 creazione automatica dell'utente al primo login (fabiomonti87@gmail.com = super_admin),
 funzione `sprint4_esegui` per le scritture in transazione unica.
 
-**Nota ordine**: eseguirla DOPO il passo 1 va bene; se la esegui prima, va bene lo stesso
-(il backfill di `team_id` sugli addebiti va rieseguito dopo la migrazione dati con:
-`update contract_year_charges cyc set team_id = c.team_id from contracts c where c.id = cyc.contract_id and cyc.team_id is null;`).
+**Nota ordine (per installazioni da zero)**: eseguire questa migrazione SQL **prima**
+della migrazione dati del passo 1 — lo script di migrazione ora scrive anche
+`contract_year_charges.team_id` (squadra che ospita il giocatore, prestiti inclusi)
+e richiede che la colonna esista già.
+
+**Storico 14/07/2026**: sulla lega reale i passi sono stati eseguiti nell'ordine inverso
+e gli 11 addebiti dei prestiti sono stati riattribuiti a mano alla squadra ospitante
+(quadratura completa budget+monte+slot verificata OK su tutte le 10 squadre).
 
 ## 3. Variabile d'ambiente su Vercel
 
