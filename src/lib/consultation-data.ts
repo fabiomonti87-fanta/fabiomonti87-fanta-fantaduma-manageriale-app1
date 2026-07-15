@@ -1,6 +1,10 @@
 // Dati per la dashboard di consultazione.
-// Fonte primaria: Supabase (viste sul ledger — Sprint 4). Finché il DB non è
-// popolato con la migrazione Sprint 2, fallback provvisorio sull'xlsx del gestionale.
+// Fonte primaria e unica in produzione: Supabase (viste sul ledger — Sprint 4).
+// Il fallback sull'xlsx del gestionale resta solo per sviluppo locale prima
+// della migrazione dati: su Vercel il file non è leggibile a runtime dalla
+// function serverless, quindi in quell'ambiente un guasto Supabase deve
+// emergere come errore chiaro, non essere mascherato da un fallback che
+// fallirebbe comunque con un digest illeggibile.
 
 import path from 'node:path';
 import { parseGestionale } from '../migration/parser';
@@ -21,8 +25,15 @@ export async function loadConsultationData(): Promise<ConsultationData> {
   try {
     const db = await datiDaSupabase();
     if (db) return db;
-  } catch {
-    // DB non configurato o non raggiungibile: fallback sul foglio
+  } catch (e) {
+    console.error('[consultation-data] lettura da Supabase fallita:', e);
+    if (process.env.VERCEL) {
+      throw new Error(
+        `Dati di lega non disponibili: la lettura da Supabase è fallita (${e instanceof Error ? e.message : String(e)}). ` +
+        'Verificare che SUPABASE_SERVICE_ROLE_KEY sia impostata su questo progetto Vercel, ambiente Production, e rifare il deploy.'
+      );
+    }
+    // Solo in locale (npm run dev), prima che la migrazione dati sia applicata: fallback sul foglio.
   }
   return datiDaXlsx();
 }
