@@ -32,6 +32,7 @@ export default function ConsultationDashboard({ data, ruolo = 'viewer' }: { data
       <a className="nav-link" href="/operazioni">Operazioni</a>
       {ruolo !== 'viewer' && <a className="nav-link" href="/operazioni/nuova">Nuova operazione</a>}
       {ruolo === 'super_admin' && <><a className="nav-link" href="/approvazioni">Approvazioni</a><a className="nav-link" href="/mercato">Mercato e multe</a><a className="nav-link" href="/import-fvm">Import FVM</a></>}
+      <a className="nav-link" href="/manuale">Manuale</a>
     </nav>
 
     <section className="hero-grid">

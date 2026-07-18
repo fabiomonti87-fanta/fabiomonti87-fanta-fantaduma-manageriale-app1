@@ -9,6 +9,7 @@ export default function NavLega({ ruolo, attiva }: { ruolo: 'super_admin' | 'pre
     { href: '/approvazioni', label: 'Approvazioni', chiave: 'approvazioni', min: 'super_admin' },
     { href: '/mercato', label: 'Mercato e multe', chiave: 'mercato', min: 'super_admin' },
     { href: '/import-fvm', label: 'Import FVM', chiave: 'import', min: 'super_admin' },
+    { href: '/manuale', label: 'Manuale', chiave: 'manuale', min: 'viewer' },
   ] as const;
   const visibile = (min: string) =>
     min === 'viewer' ||

@@ -25,3 +25,19 @@
 .stato-aperta{font-style:normal;background:#e6f5ec;color:var(--green);padding:4px 8px;border-radius:99px;font-size:11px;font-weight:800}
 .stato-chiusa{font-style:normal;background:#eef1ee;color:var(--muted);padding:4px 8px;border-radius:99px;font-size:11px;font-weight:800}
 @media(max-width:900px){.wizard{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+
+/* Manuale d'uso integrato (/manuale) */
+.manuale .form-card{font-size:14px;line-height:1.65}
+.manuale .form-card ul,.manuale .form-card ol{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:7px}
+.manuale .form-card p{margin-top:10px}
+.manuale .form-card p:first-child{margin-top:0}
+.manuale .form-card h3{margin:16px 0 0;font-size:15px;letter-spacing:-.01em}
+.manuale-indice{list-style:none;padding-left:0!important;display:grid!important;grid-template-columns:repeat(2,1fr);gap:8px}
+.manuale-indice a{color:var(--green);font-weight:700;text-decoration:none}
+.manuale-indice a:hover{text-decoration:underline}
+.manuale-sezione{scroll-margin-top:20px}
+.manuale-tabella{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+.manuale-tabella th{background:#edf3ef;color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:.08em;text-align:left}
+.manuale-tabella th,.manuale-tabella td{padding:9px 12px;border-top:1px solid #edf1ee}
+.manuale-tabella th:not(:first-child),.manuale-tabella td:not(:first-child){text-align:center;white-space:nowrap}
+@media(max-width:520px){.manuale-indice{grid-template-columns:1fr}.manuale .form-card{overflow-x:auto}}
